@@ -1,10 +1,8 @@
 package net.theatticlight.Shapely;
 
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 
 public class SpatialIndex {
@@ -77,41 +75,27 @@ public class SpatialIndex {
     	file.seek(0);
     	byte[] sig = new byte[3];
     	file.read(sig);
-    	if(!new String(sig).equals("SQT"))
+    	if(!new String(sig).equals("SQT")) {
+    		file.close();
     		throw new SpatialIndexException("Wrong file signature.");
+    	}
     	
     	int endianness = (int)file.readByte();
     	
-    	if(!(file.readByte() == 1))
+    	if(!(file.readByte() == 1)) {
+    		file.close();
     		throw new SpatialIndexException("Wrong file version number");
+    	}
     	
     	file.seek(8);
     	totalCount = file.readInt();
     	maxDepth = file.readInt();
     	
     	rootNode = new TreeNode(file);
+    	file.close();
     }
     
     public List<Integer> getRecordsAtPoint(double X, double Y) {
     	return rootNode.getRecordsAtPoint(X, Y);
-    }
-  
-    public static void main (String[] args)
-    {
-    	try
-    	{
-    		SpatialIndex si = new SpatialIndex("resources/tz_world");
-    		System.out.println("Max Depth: " + si.maxDepth);
-    		System.out.println("Total Count: " + si.totalCount);
-    		System.out.println("Bounds: " + si.rootNode.minX + ", " + si.rootNode.minY + ", " + si.rootNode.maxX + ", " + si.rootNode.maxY);
-    		List<Integer> records = si.getRecordsAtPoint(0.0106, 51.4788);
-    		for(Integer record: records)
-    			System.out.println("record: " + record);
-    	}
-    	catch (Exception e)
-    	{
-    		System.out.println(e.getMessage());
-    	}
-    	
     }
 }

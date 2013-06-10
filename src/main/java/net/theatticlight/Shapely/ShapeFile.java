@@ -3,28 +3,22 @@ package net.theatticlight.Shapely;
 import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.Graphics;
-import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseMotionAdapter;
-import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.RandomAccessFile;
-import java.math.BigDecimal;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.Stack;
 import java.util.WeakHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import javax.swing.BorderFactory;
 import javax.swing.JFrame;
-import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 
 import net.theatticlight.Shapely.Record.CompoundShape;
@@ -32,8 +26,6 @@ import net.theatticlight.Shapely.Record.Point;
 import net.theatticlight.Shapely.Record.Polygon;
 import net.theatticlight.Shapely.Record.ShapeException;
 import net.theatticlight.Shapely.Record.ShapeHeader;
-import net.theatticlight.Shapely.Record.ShapeType;
-import net.theatticlight.Shapely.Record.Vect;
 import net.theatticlight.Shapely.SpatialIndex.SpatialIndexException;
 
 //import org.joda.time.DateTime;
