@@ -132,7 +132,7 @@ public class Record {
 		public double getX() { return X; }
 		public double getY() { return Y; }
 		
-		Vect(double X, double Y) {
+		public Vect(double X, double Y) {
 			this.X = X;
 			this.Y = Y;
 		}
