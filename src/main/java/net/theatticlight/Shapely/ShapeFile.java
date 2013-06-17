@@ -11,6 +11,7 @@ import java.io.RandomAccessFile;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -39,7 +40,16 @@ public class ShapeFile {
 	
 	public static class Index {
 		final int[] index; 
-		Map<Integer,Record> cache = new WeakHashMap<Integer,Record>();
+		
+		private class CacheMap<K,V> extends LinkedHashMap<K,V> {
+			private static final long serialVersionUID = 1L;
+			private static final int MAX_ENTRIES = 25;
+			
+			protected boolean removeEldestEntry(Map.Entry<K,V> eldest) {
+				return size() > MAX_ENTRIES;
+			}
+		}
+		Map<Integer,Record> cache = new CacheMap<Integer,Record>();
 		
 		Index (String filePath) throws FileNotFoundException, IOException
 		{
