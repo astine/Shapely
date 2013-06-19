@@ -9,6 +9,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import javax.swing.BorderFactory;
 import javax.swing.JFrame;
+import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 
 import net.theatticlight.Shapely.Record.Point;
@@ -112,9 +113,16 @@ public class GraphicalTest {
 	{
 		try
 		{
+			long time1 = System.currentTimeMillis();
 			ShapeFile shapeFile = new ShapeFile(args[0]);
 			
+			long time2 = System.currentTimeMillis();
+			System.out.println("Took " + (time2 - time1) + " milisec to load shapefile.");
+			
 			showPolygons(shapeFile, args[1]);
+			
+			long time3 = System.currentTimeMillis();
+			System.out.println("Took " + (time3 - time2) + " milisec to display shapefile.");
 			
 			System.out.println("Done.");
 		}

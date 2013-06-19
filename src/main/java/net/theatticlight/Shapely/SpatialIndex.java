@@ -1,5 +1,7 @@
 package net.theatticlight.Shapely;
 
+import java.io.DataInputStream;
+import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.util.ArrayList;
@@ -27,7 +29,7 @@ public class SpatialIndex {
     	final int subNodeCount;
     	final TreeNode[] subNodes;
     	
-    	TreeNode(RandomAccessFile file) throws IOException {
+    	TreeNode(DataInputStream file) throws IOException {
     		int offset = file.readInt();
     		
     		minX = file.readDouble();
@@ -70,9 +72,8 @@ public class SpatialIndex {
     }
     
     SpatialIndex (String fileBaseName) throws IOException, SpatialIndexException {
-    	RandomAccessFile file = new RandomAccessFile(fileBaseName + ".qix", "r");
+    	DataInputStream file = new DataInputStream(new FileInputStream(fileBaseName + ".qix"));
     	
-    	file.seek(0);
     	byte[] sig = new byte[3];
     	file.read(sig);
     	if(!new String(sig).equals("SQT")) {
@@ -87,10 +88,10 @@ public class SpatialIndex {
     		throw new SpatialIndexException("Wrong file version number");
     	}
     	
-    	file.seek(8);
+    	file.skip(3);
     	totalCount = file.readInt();
     	maxDepth = file.readInt();
-    	
+
     	rootNode = new TreeNode(file);
     	file.close();
     }

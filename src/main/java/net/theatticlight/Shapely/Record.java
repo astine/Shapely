@@ -2,6 +2,7 @@ package net.theatticlight.Shapely;
 
 import java.io.IOException;
 import java.io.RandomAccessFile;
+import java.nio.ByteBuffer;
 
 import net.theatticlight.Shapely.Record.XY;
 
@@ -85,24 +86,28 @@ public class Record {
 		ShapeHeader(RandomAccessFile file) throws IOException, ShapeException
 		{
 			file.seek(0);
-			if(file.readInt() != 9994)
+			byte[] barray = new byte[100];
+			ByteBuffer bb = ByteBuffer.wrap(barray);
+			file.read(barray);
+			
+			if(bb.getInt() != 9994)
 				throw new ShapeException("Bad ShapeFile");
 			
-			file.seek(24);
-			fileSize = file.readInt();
-			version = Integer.reverseBytes(file.readInt());
+			bb.position(24);
+			fileSize = bb.getInt();
+			version = Integer.reverseBytes(bb.getInt());
 			if(version != 1000)
 				throw new ShapeException("Wrong file version");
 			
-			shapeType = ShapeType.getShape(Integer.reverseBytes(file.readInt()));
-			minX = Double.longBitsToDouble(Long.reverseBytes(file.readLong()));
-			minY = Double.longBitsToDouble(Long.reverseBytes(file.readLong()));
-			maxX = Double.longBitsToDouble(Long.reverseBytes(file.readLong()));
-			maxY = Double.longBitsToDouble(Long.reverseBytes(file.readLong()));
-			minZ = Double.longBitsToDouble(Long.reverseBytes(file.readLong()));
-			maxZ = Double.longBitsToDouble(Long.reverseBytes(file.readLong()));
-			minM = Double.longBitsToDouble(Long.reverseBytes(file.readLong()));
-			maxM = Double.longBitsToDouble(Long.reverseBytes(file.readLong()));
+			shapeType = ShapeType.getShape(Integer.reverseBytes(bb.getInt()));
+			minX = Double.longBitsToDouble(Long.reverseBytes(bb.getLong()));
+			minY = Double.longBitsToDouble(Long.reverseBytes(bb.getLong()));
+			maxX = Double.longBitsToDouble(Long.reverseBytes(bb.getLong()));
+			maxY = Double.longBitsToDouble(Long.reverseBytes(bb.getLong()));
+			minZ = Double.longBitsToDouble(Long.reverseBytes(bb.getLong()));
+			maxZ = Double.longBitsToDouble(Long.reverseBytes(bb.getLong()));
+			minM = Double.longBitsToDouble(Long.reverseBytes(bb.getLong()));
+			maxM = Double.longBitsToDouble(Long.reverseBytes(bb.getLong()));
 		}
 		
 		public boolean equals(ShapeHeader header)
@@ -194,7 +199,7 @@ public class Record {
 	
 	
 	public abstract class Shape {
-		Shape (RandomAccessFile file)
+		Shape (ByteBuffer bb)
 		{			
 		}
 		Shape ()
@@ -214,11 +219,11 @@ public class Record {
 			this(xy.getX(), xy.getY());
 		}
 		
-		Point (RandomAccessFile file) throws IOException
+		Point (ByteBuffer bb) throws IOException
 		{
-			super(file);
-			X = Double.longBitsToDouble(Long.reverseBytes(file.readLong()));
-			Y = Double.longBitsToDouble(Long.reverseBytes(file.readLong()));
+			super(bb);
+			X = Double.longBitsToDouble(Long.reverseBytes(bb.getLong()));
+			Y = Double.longBitsToDouble(Long.reverseBytes(bb.getLong()));
 		}
 		Point (double X, double Y)
 		{
@@ -235,13 +240,13 @@ public class Record {
 	public abstract class CompoundShape extends Shape {
 		final double minX, minY, maxX, maxY;
 
-		CompoundShape (RandomAccessFile file) throws IOException
+		CompoundShape (ByteBuffer bb) throws IOException
 		{
-			super(file);
-			minX = Double.longBitsToDouble(Long.reverseBytes(file.readLong()));
-			minY = Double.longBitsToDouble(Long.reverseBytes(file.readLong()));
-			maxX = Double.longBitsToDouble(Long.reverseBytes(file.readLong()));
-			maxY = Double.longBitsToDouble(Long.reverseBytes(file.readLong()));
+			super(bb);
+			minX = Double.longBitsToDouble(Long.reverseBytes(bb.getLong()));
+			minY = Double.longBitsToDouble(Long.reverseBytes(bb.getLong()));
+			maxX = Double.longBitsToDouble(Long.reverseBytes(bb.getLong()));
+			maxY = Double.longBitsToDouble(Long.reverseBytes(bb.getLong()));
 		}
 		
 		protected boolean inBoundingBox(XY point)
@@ -257,13 +262,13 @@ public class Record {
 	public class MultiPoint extends CompoundShape {
 		final Point[] points;
 		
-		MultiPoint (RandomAccessFile file) throws IOException
+		MultiPoint (ByteBuffer bb) throws IOException
 		{
-			super(file);
-			int count = Integer.reverseBytes(file.readInt());
+			super(bb);
+			int count = Integer.reverseBytes(bb.getInt());
 			Point[] points = new Point[count];
 			for(int i = 0; i < count; i++)
-				points[i] = new Point(file);
+				points[i] = new Point(bb);
 			this.points = points;
 		}
 		
@@ -284,20 +289,20 @@ public class Record {
 		final int[] parts;
 		final Point[] points;
 		
-		PolyLine (RandomAccessFile file) throws IOException
+		PolyLine (ByteBuffer bb) throws IOException
 		{
-			super(file);
+			super(bb);
 			
-			int countParts = Integer.reverseBytes(file.readInt());
-			int countPoints = Integer.reverseBytes(file.readInt());
+			int countParts = Integer.reverseBytes(bb.getInt());
+			int countPoints = Integer.reverseBytes(bb.getInt());
 			
 			int[] parts = new int[countParts];
 			for(int i = 0; i < countParts; i++)
-				parts[i] = Integer.reverseBytes(file.readInt());
+				parts[i] = Integer.reverseBytes(bb.getInt());
 			
 			Point[] points = new Point[countPoints];
 			for(int i = 0; i < countPoints; i++)
-				points[i] = new Point(file);
+				points[i] = new Point(bb);
 			
 			this.parts = parts;
 			this.points = points;
@@ -314,9 +319,9 @@ public class Record {
 	
 
 	public class Polygon extends PolyLine {
-		Polygon (RandomAccessFile file) throws IOException
+		Polygon (ByteBuffer bb) throws IOException
 		{
-			super(file);
+			super(bb);
 		}
 
 		/**
@@ -378,23 +383,30 @@ public class Record {
 		{
 			recordNumber = file.readInt();
 			shapeSize = file.readInt();
-			shapeType = ShapeType.getShape(Integer.reverseBytes(file.readInt()));
+			
+			byte[] barray = new byte[shapeSize*2];
+			ByteBuffer bb = ByteBuffer.wrap(barray);
+			file.read(barray);
+			
+			shapeType = ShapeType.getShape(Integer.reverseBytes(bb.getInt()));
+			
 			switch (shapeType)
 			{
 			case POINT:
-				shape = new Point(file);
+				shape = new Point(bb);
 				break;
 			case POLYLINE:
-				shape = new PolyLine(file);
+				shape = new PolyLine(bb);
 				break;
 			case MULTIPOINT:
-				shape = new MultiPoint(file);
+				shape = new MultiPoint(bb);
 				break;
 			case POLYGON:
-				shape = new Polygon(file);
+				shape = new Polygon(bb);
 				break;
 			default:
 				throw new ShapeException("Unhandled shape type: " + shapeType);
 			}
+			bb.clear();
 		}
 }

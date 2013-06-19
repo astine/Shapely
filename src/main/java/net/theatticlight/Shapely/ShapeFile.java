@@ -5,9 +5,15 @@ import java.awt.Dimension;
 import java.awt.Graphics;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseMotionAdapter;
+import java.io.BufferedInputStream;
+import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.RandomAccessFile;
+import java.nio.ByteBuffer;
+import java.nio.IntBuffer;
+import java.nio.channels.FileChannel;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -41,6 +47,8 @@ public class ShapeFile {
 	public static class Index {
 		final int[] index; 
 		
+		static final int BUFFER_SIZE = 4096;
+		
 		private class CacheMap<K,V> extends LinkedHashMap<K,V> {
 			private static final long serialVersionUID = 1L;
 			private static final int MAX_ENTRIES = 25;
@@ -51,19 +59,31 @@ public class ShapeFile {
 		}
 		Map<Integer,Record> cache = new CacheMap<Integer,Record>();
 		
-		Index (String filePath) throws FileNotFoundException, IOException
+		Index (String filePath) throws IOException
 		{
-			RandomAccessFile indexFile = new RandomAccessFile(filePath, "r");
-			indexFile.seek(100); //Skip header
+			FileInputStream indexFile = new FileInputStream(filePath);
+			indexFile.skip(100); //Skip Header
+			FileChannel channel = indexFile.getChannel();
 			
-			int numRecords = (int)((indexFile.length()-100)/8);
+			int numRecords = (int)(channel.size()/8);
 			index = new int[numRecords];
 			
-			for(int i = 0; i < index.length; i++)
-			{
-				index[i] = indexFile.readInt() * 2;	//Keep the offset
-				indexFile.readInt();				//Toss the length
+			ByteBuffer bb = ByteBuffer.allocateDirect(BUFFER_SIZE);
+			
+			int indexIndex = 0;
+			int nRead;
+			while ((nRead=channel.read(bb)) != -1) {
+				bb.rewind();
+				bb.limit(nRead);
+				while(bb.hasRemaining()) {
+					index[indexIndex] = bb.getInt()*2; //Keep Offset
+					bb.position(bb.position()+4);      //Toss Length
+					indexIndex++;
+				}
+				bb.clear();
 			}
+			System.out.println(index[0]);
+			channel.close();
 			indexFile.close();
 		}
 		
@@ -76,63 +96,12 @@ public class ShapeFile {
 		{
 			Integer key = new Integer(recordNumber);
 			if(cache.containsKey(key))
-				return cache.get(new Integer(recordNumber));
+				return cache.get(key);
 			
 			file.seek(getOffset(recordNumber));
 			Record record = new Record(file);
 			cache.put(key, record);
 			return record;
-		}
-	}
-	
-	public static class GridIndex {
-		private class GridKey {
-			final int x, y;
-			GridKey (double x, double y)
-			{
-				this.x = (int)Math.round(x);
-				this.y = (int)Math.round(y);
-			}
-		}
-		
-		final Map<GridKey,Set<Integer>> gridIndex;
-		
-		void addMember(GridKey key, Integer number)
-		{
-			if(!gridIndex.containsKey(key))
-				gridIndex.put(key, new HashSet<Integer>());
-
-			gridIndex.get(key).add(number);
-		}
-		
-		GridIndex(ShapeFile shapeFile) throws ShapeException, IOException
-		{
-			gridIndex = new HashMap<GridKey,Set<Integer>>();
-			for(int i = 1;i < shapeFile.getRecordCount()+1; i++)
-			{
-				Record record = shapeFile.getRecord(i);
-				Integer recordNumber = new Integer(record.recordNumber);
-				switch(record.shapeType)
-				{
-				case POINT:
-					Point point = (Point)record.shape;
-					addMember(new GridKey(point.X, point.Y), recordNumber);
-					break;
-				case POLYLINE:
-				case POLYGON:
-				case MULTIPOINT:
-					CompoundShape shape = (CompoundShape)record.shape;
-					addMember(new GridKey(shape.minX, shape.minY), recordNumber);
-					addMember(new GridKey(shape.maxX, shape.minY), recordNumber);
-					addMember(new GridKey(shape.minX, shape.maxY), recordNumber);
-					addMember(new GridKey(shape.maxX, shape.maxY), recordNumber);
-				}
-			}
-		}
-		
-		public Set<Integer> shapesForGrid(double x, double y)
-		{
-			return gridIndex.get(new GridKey(x, y));
 		}
 	}
 	
